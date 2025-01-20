@@ -2,46 +2,75 @@ using BBMS_WebAPI.Data;
 using BBMS_WebAPI.Services;
 using BBMS_WebAPI.Utilities;
 using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System.Reflection;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ------------------------- Configure Services -------------------------
 
-/*builder.Services.AddControllers()
-    .AddFluentValidation(c => c.RegisterValidatorsFromAssembly(Assembly.GetExecutingAssembly()));*/
+// Add controllers with FluentValidation
+builder.Services.AddControllers()
+    .AddFluentValidation(c => c.RegisterValidatorsFromAssembly(Assembly.GetExecutingAssembly()));
 
+// Register repositories
 builder.Services.AddScoped<DonorRepository>();
+builder.Services.AddScoped<DonationRepository>();
 
-// Add CORS configuration
+// Register utilities and services
+builder.Services.AddScoped<OtpService>();
+builder.Services.AddScoped<EmailHelper>();
+
+// Load DonorMapper mappings
+DonorMapper.LoadMapping(builder.Configuration);
+
+// Configure CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", policy =>
     {
         policy.WithOrigins("http://localhost:5173") // Your frontend URL
-              .AllowAnyHeader()                     // Allow any header
-              .AllowAnyMethod()                     // Allow any HTTP method (GET, POST, etc.)
-              .AllowCredentials();                  // Allow credentials (cookies, etc.)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
-// Register the database context for MailKit
+// Configure JWT Authentication
+var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtIssuer,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        };
+    });
+
+// Configure the database context for EF Core
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("ConnectionString")));
 
-
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// Add Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register services and utilities
-builder.Services.AddScoped<OtpService>();
-builder.Services.AddScoped<EmailHelper>();
+// ------------------------- Build Application -------------------------
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ------------------------- Configure Middleware -------------------------
+
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
@@ -49,12 +78,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-
 // Use CORS middleware
 app.UseCors("AllowSpecificOrigin");
 
 app.UseHttpsRedirection();
 
+// Add Authentication and Authorization Middleware
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

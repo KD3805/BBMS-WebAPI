@@ -120,7 +120,7 @@ namespace BBMS_WebAPI.Controllers
                     donor.DOB,
                     donor.Age,
                     donor.Gender,
-                    donor.BloodGroup,
+                    donor.BloodGroupName,
                     donor.Phone,
                     donor.Email,
                     donor.Address
@@ -150,7 +150,7 @@ namespace BBMS_WebAPI.Controllers
                     donor.DOB,
                     donor.Age,
                     donor.Gender,
-                    donor.BloodGroup,
+                    donor.BloodGroupName,
                     donor.Phone,
                     donor.Email,
                     donor.Address

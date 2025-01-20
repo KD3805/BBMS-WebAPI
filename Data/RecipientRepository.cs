@@ -5,32 +5,32 @@ using System.Data;
 
 namespace BBMS_WebAPI.Data
 {
-    public class DonorRepository
+    public class RecipientRepository
     {
         private readonly string _connectionString;
 
-        public DonorRepository(IConfiguration configuration)
+        public RecipientRepository(IConfiguration configuration)
         {
             _connectionString = configuration.GetConnectionString("ConnectionString");
         }
 
         #region GetAll
-        public List<DonorModel> GetAll()
+        public List<RecipientModel> GetAll()
         {
-            var donors = new List<DonorModel>();
+            var recipients = new List<RecipientModel>();
             using (SqlConnection conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
-                SqlCommand cmd = new SqlCommand("PR_Donor_SelectAll", conn)
+                SqlCommand cmd = new SqlCommand("PR_Recipient_SelectAll", conn)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
                 SqlDataReader reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
-                    donors.Add(new DonorModel
+                    recipients.Add(new RecipientModel
                     {
-                        DonorID = Convert.ToInt32(reader["DonorID"]),
+                        RecipientID = Convert.ToInt32(reader["RecipientID"]),
                         Name = reader["Name"].ToString(),
                         DOB = Convert.ToDateTime(reader["DOB"]),
                         Age = Convert.ToInt32(reader["Age"]),
@@ -44,28 +44,28 @@ namespace BBMS_WebAPI.Data
                     });
                 }
             }
-            return donors;
+            return recipients;
         }
         #endregion
 
         #region GetById
-        public DonorModel GetById(int donorId)
+        public RecipientModel GetById(int recipientId)
         {
-            DonorModel donor = null;
+            RecipientModel recipient = null;
             using (SqlConnection conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
-                SqlCommand cmd = new SqlCommand("PR_Donor_SelectByPK", conn)
+                SqlCommand cmd = new SqlCommand("PR_Recipient_SelectByPK", conn)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
-                cmd.Parameters.AddWithValue("@DonorID", donorId);
+                cmd.Parameters.AddWithValue("@RecipientID", recipientId);
                 SqlDataReader reader = cmd.ExecuteReader();
                 if (reader.Read())
                 {
-                    donor = new DonorModel
+                    recipient = new RecipientModel
                     {
-                        DonorID = Convert.ToInt32(reader["DonorID"]),
+                        RecipientID = Convert.ToInt32(reader["RecipientID"]),
                         Name = reader["Name"].ToString(),
                         DOB = Convert.ToDateTime(reader["DOB"]),
                         Age = Convert.ToInt32(reader["Age"]),
@@ -79,18 +79,18 @@ namespace BBMS_WebAPI.Data
                     };
                 }
             }
-            return donor;
+            return recipient;
         }
         #endregion
 
         #region GetByEmail
-        public DonorModel GetByEmail(string email)
+        public RecipientModel GetByEmail(string email)
         {
-            DonorModel donor = null;
+            RecipientModel recipient = null;
             using (SqlConnection conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
-                SqlCommand cmd = new SqlCommand("PR_Donor_SelectByEmail", conn)
+                SqlCommand cmd = new SqlCommand("PR_Recipient_SelectByEmail", conn)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -99,9 +99,9 @@ namespace BBMS_WebAPI.Data
                 SqlDataReader reader = cmd.ExecuteReader();
                 if (reader.Read())
                 {
-                    donor = new DonorModel
+                    recipient = new RecipientModel
                     {
-                        DonorID = Convert.ToInt32(reader["DonorID"]),
+                        RecipientID = Convert.ToInt32(reader["RecipientID"]),
                         Name = reader["Name"].ToString(),
                         DOB = Convert.ToDateTime(reader["DOB"]),
                         Age = Convert.ToInt32(reader["Age"]),
@@ -115,97 +115,62 @@ namespace BBMS_WebAPI.Data
                     };
                 }
             }
-            return donor;
+            return recipient;
         }
         #endregion
 
         #region Insert
-        public bool Insert(DonorModel donorModel)
+        public bool Insert(RecipientModel recipientModel)
         {
-            int? bloodGroupID = BloodGroupMapper.GetBloodGroupID(donorModel.BloodGroupName);
+            int? bloodGroupID = BloodGroupMapper.GetBloodGroupID(recipientModel.BloodGroupName);
             if (bloodGroupID == null)
                 throw new ArgumentException("Invalid Blood Group Name");
 
             using (SqlConnection conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
-                SqlCommand cmd = new SqlCommand("PR_Donor_Insert", conn)
+                SqlCommand cmd = new SqlCommand("PR_Recipient_Insert", conn)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
-                cmd.Parameters.AddWithValue("@Name", donorModel.Name);
-                cmd.Parameters.AddWithValue("@DOB", donorModel.DOB);
-                cmd.Parameters.AddWithValue("@Age", donorModel.Age);
-                cmd.Parameters.AddWithValue("@Gender", donorModel.Gender);
+                cmd.Parameters.AddWithValue("@Name", recipientModel.Name);
+                cmd.Parameters.AddWithValue("@DOB", recipientModel.DOB);
+                cmd.Parameters.AddWithValue("@Age", recipientModel.Age);
+                cmd.Parameters.AddWithValue("@Gender", recipientModel.Gender);
                 cmd.Parameters.AddWithValue("@BloodGroupID", bloodGroupID.Value);
-                cmd.Parameters.AddWithValue("@Phone", donorModel.Phone);
-                cmd.Parameters.AddWithValue("@Email", donorModel.Email);
-                cmd.Parameters.AddWithValue("@Address", donorModel.Address);
+                cmd.Parameters.AddWithValue("@Phone", recipientModel.Phone);
+                cmd.Parameters.AddWithValue("@Email", recipientModel.Email);
+                cmd.Parameters.AddWithValue("@Address", recipientModel.Address);
 
-                // Add output parameter to capture the new DonorID
-                SqlParameter newDonorIdParam = new SqlParameter("@NewDonorID", SqlDbType.Int)
-                {
-                    Direction = ParameterDirection.Output
-                };
-                cmd.Parameters.Add(newDonorIdParam);
-
-                cmd.ExecuteNonQuery();
-
-                int newDonorID = (int)newDonorIdParam.Value;
-
-                // Update DonorMapper dynamically
-                DonorMapper.AddToMapping(donorModel.Name, newDonorID);
-
-                return newDonorID > 0;
-
-                /*if (rowsAffected > 0)
-                {
-                    int newDonorID = 0;
-                    // Fetch the generated ID using SCOPE_IDENTITY
-                    SqlCommand getIdCmd = new SqlCommand("SELECT SCOPE_IDENTITY()", conn);
-                    object result = getIdCmd.ExecuteScalar();
-
-                    if (result != DBNull.Value && result != null)
-                    {
-                        newDonorID = Convert.ToInt32(result);
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException("Failed to retrieve the newly inserted DonorID.");
-                    }
-
-                    // Dynamically update the DonorMapping
-                    DonorMapper.AddToMapping(donorModel.Name, newDonorID);
-                }*/
-
+                int rowsAffected = cmd.ExecuteNonQuery();
+                return rowsAffected > 0;
             }
         }
         #endregion
 
-
         #region Update
-        public bool Update(DonorModel donorModel)
+        public bool Update(RecipientModel recipientModel)
         {
-            int? bloodGroupID = BloodGroupMapper.GetBloodGroupID(donorModel.BloodGroupName);
+            int? bloodGroupID = BloodGroupMapper.GetBloodGroupID(recipientModel.BloodGroupName);
             if (bloodGroupID == null)
                 throw new ArgumentException("Invalid Blood Group Name");
 
             using (SqlConnection conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
-                SqlCommand cmd = new SqlCommand("PR_Donor_UpdateByPK", conn)
+                SqlCommand cmd = new SqlCommand("PR_Recipient_UpdateByPK", conn)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
-                cmd.Parameters.AddWithValue("@DonorID", donorModel.DonorID);
-                cmd.Parameters.AddWithValue("@Name", donorModel.Name);
-                cmd.Parameters.AddWithValue("@DOB", donorModel.DOB);
-                cmd.Parameters.AddWithValue("@Age", donorModel.Age);
-                cmd.Parameters.AddWithValue("@Gender", donorModel.Gender);
+                cmd.Parameters.AddWithValue("@RecipientID", recipientModel.RecipientID);
+                cmd.Parameters.AddWithValue("@Name", recipientModel.Name);
+                cmd.Parameters.AddWithValue("@DOB", recipientModel.DOB);
+                cmd.Parameters.AddWithValue("@Age", recipientModel.Age);
+                cmd.Parameters.AddWithValue("@Gender", recipientModel.Gender);
                 cmd.Parameters.AddWithValue("@BloodGroupID", bloodGroupID.Value);
-                cmd.Parameters.AddWithValue("@Phone", donorModel.Phone);
-                cmd.Parameters.AddWithValue("@Email", donorModel.Email);
-                cmd.Parameters.AddWithValue("@Address", donorModel.Address);
+                cmd.Parameters.AddWithValue("@Phone", recipientModel.Phone);
+                cmd.Parameters.AddWithValue("@Email", recipientModel.Email);
+                cmd.Parameters.AddWithValue("@Address", recipientModel.Address);
 
                 int rowsAffected = cmd.ExecuteNonQuery();
                 return rowsAffected > 0;
@@ -214,16 +179,16 @@ namespace BBMS_WebAPI.Data
         #endregion
 
         #region Delete
-        public bool Delete(int donorId)
+        public bool Delete(int recipientId)
         {
             using (SqlConnection conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
-                SqlCommand cmd = new SqlCommand("PR_Donor_DeleteByPK", conn)
+                SqlCommand cmd = new SqlCommand("PR_Recipient_DeleteByPK", conn)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
-                cmd.Parameters.AddWithValue("@DonorID", donorId);
+                cmd.Parameters.AddWithValue("@RecipientID", recipientId);
 
                 int rowsAffected = cmd.ExecuteNonQuery();
                 return rowsAffected > 0;
@@ -231,28 +196,28 @@ namespace BBMS_WebAPI.Data
         }
         #endregion
 
-        #region DonorDropDown
-        public List<DonorDropDownModel> GetDonorDropDown()
+        #region RecipientDropDown
+        public List<RecipientDropDownModel> GetRecipientDropDown()
         {
-            var donors = new List<DonorDropDownModel>();
+            var recipients = new List<RecipientDropDownModel>();
             using (SqlConnection conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
-                SqlCommand cmd = new SqlCommand("PR_Donor_DropDown", conn)
+                SqlCommand cmd = new SqlCommand("PR_Recipient_DropDown", conn)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
                 SqlDataReader reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
-                    donors.Add(new DonorDropDownModel
+                    recipients.Add(new RecipientDropDownModel
                     {
-                        DonorID = Convert.ToInt32(reader["DonorID"]),
+                        RecipientID = Convert.ToInt32(reader["RecipientID"]),
                         Name = reader["Name"].ToString()
                     });
                 }
             }
-            return donors;
+            return recipients;
         }
         #endregion
     }

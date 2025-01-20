@@ -1,10 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace BBMS_WebAPI.Models
+﻿namespace BBMS_WebAPI.Models
 {
-    public class DonorModel
+    public class RecipientModel
     {
-        public int DonorID { get; set; } // Optional for insert
+        public int RecipientID { get; set; } // Optional for insert
 
         public string Name { get; set; } // Required
 
@@ -25,12 +23,11 @@ namespace BBMS_WebAPI.Models
         public DateTime CreatedAt { get; set; } // Auto-set in DB
 
         public DateTime? UpdatedAt { get; set; } // Optional
-
     }
 
-    public class DonorDropDownModel
+    public class RecipientDropDownModel
     {
-        public int DonorID { get; set; }
+        public int RecipientID { get; set; }
         public string Name { get; set; }
     }
 }

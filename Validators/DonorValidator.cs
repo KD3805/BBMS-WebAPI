@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using BBMS_WebAPI.Models;
+using BBMS_WebAPI.Utilities;
 
 namespace BBMS_WebAPI.Validators
 {
@@ -7,17 +8,34 @@ namespace BBMS_WebAPI.Validators
     {
         public DonorValidator()
         {
-            // Rule 1: All fields are required
-            RuleFor(donor => donor.Name).NotEmpty().WithMessage("Name is required.");
-            RuleFor(donor => donor.Email).NotEmpty().WithMessage("Email is required.");
-            RuleFor(donor => donor.Phone).NotEmpty().WithMessage("Phone number is required.");
-            RuleFor(donor => donor.Gender).NotEmpty().WithMessage("Gender is required.");
-            RuleFor(donor => donor.BloodGroup).NotEmpty().WithMessage("Blood group is required.");
-            RuleFor(donor => donor.DOB).NotEmpty().WithMessage("Date of Birth is required.");
+            // Rule 1: All required fields
+            RuleFor(donor => donor.Name)
+                .NotEmpty()
+                .WithMessage("Name is required.");
 
-            // Rule 2: Donor must be at least 18 years old
-            RuleFor(donor => donor.Age)
-                .Must(age => age >= 18)
+            RuleFor(donor => donor.Email)
+                .NotEmpty()
+                .WithMessage("Email is required.");
+
+            RuleFor(donor => donor.Phone)
+                .NotEmpty()
+                .WithMessage("Phone number is required.");
+
+            RuleFor(donor => donor.Gender)
+                .NotEmpty()
+                .WithMessage("Gender is required.");
+
+            RuleFor(donor => donor.BloodGroupName)
+                .NotEmpty()
+                .WithMessage("Blood group is required.");
+
+            RuleFor(donor => donor.DOB)
+                .NotEmpty()
+                .WithMessage("Date of Birth is required.");
+
+            // Rule 2: Donor must be at least 18 years old based on DOB
+            RuleFor(donor => donor.DOB)
+                .Must(dob => CalculateAge(dob) >= 18)
                 .WithMessage("Donor must be at least 18 years old.");
 
             // Rule 3: Valid email address
@@ -36,10 +54,19 @@ namespace BBMS_WebAPI.Validators
                 .WithMessage("Gender must be Male, Female, or Other.");
 
             // Rule 6: Blood group value should be valid
-            RuleFor(donor => donor.BloodGroup)
-                .Must(bg => new[] { "AB-Ve", "AB+Ve", "A-Ve", "A+Ve", "B-Ve", "B+Ve", "Oh-Ve", "Oh+Ve", "O-Ve", "O+Ve" }.Contains(bg))
-                .WithMessage("Blood group must be a valid value.");
+            RuleFor(donor => donor.BloodGroupName)
+                .Must(bg => BloodGroupMapper.GetBloodGroupID(bg) != null)
+                .WithMessage("Invalid Blood Group Name.");
+
         }
 
+        // Helper Method: Calculate age from DOB
+        private static int CalculateAge(DateTime dob)
+        {
+            var today = DateTime.Today;
+            var age = today.Year - dob.Year;
+            if (dob.Date > today.AddYears(-age)) age--;
+            return age;
+        }
     }
 }
