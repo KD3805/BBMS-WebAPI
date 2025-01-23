@@ -39,6 +39,34 @@ namespace BBMS_WebAPI.Controllers
         }
         #endregion
 
+        #region Recipient Profile
+        [HttpGet("Profile")]
+        public IActionResult GetRecipientProfile()
+        {
+            var userId = HttpContext.Items["UserId"];
+
+            if (userId == null)
+                return Unauthorized("Invalid or expired token.");
+
+            var recipient = _recipientRepository.GetById((int)userId);
+            if (recipient == null)
+                return NotFound("Recipient not found.");
+
+            return Ok(new
+            {
+                recipient.RecipientID,
+                recipient.Name,
+                recipient.DOB,
+                recipient.Age,
+                recipient.Gender,
+                recipient.BloodGroupName,
+                recipient.Phone,
+                recipient.Email,
+                recipient.Address
+            });
+        }
+        #endregion
+
         #region Insert
         [HttpPost]
         public IActionResult InsertRecipient([FromBody] RecipientModel recipientModel)
@@ -105,56 +133,14 @@ namespace BBMS_WebAPI.Controllers
                 return Ok(new
                 {
                     exists = false,
-                    message = "Recipient is free to move forward with the given email."
+                    message = "Recipient with the provided email not found."
                 });
             }
 
             return Ok(new
             {
                 message = "Recipient with the given email already exists.",
-                exists = true,
-                data = new
-                {
-                    recipient.RecipientID,
-                    recipient.Name,
-                    recipient.DOB,
-                    recipient.Age,
-                    recipient.Gender,
-                    recipient.BloodGroupName,
-                    recipient.Phone,
-                    recipient.Email,
-                    recipient.Address
-                }
-            });
-        }
-        #endregion
-
-        #region Login
-        [HttpPost("Login")]
-        public IActionResult LoginRecipient([FromBody] LoginRequestModel loginRequest)
-        {
-            if (string.IsNullOrWhiteSpace(loginRequest.Email))
-                return BadRequest("Email is required.");
-
-            var recipient = _recipientRepository.GetByEmail(loginRequest.Email);
-            if (recipient == null)
-                return NotFound("Recipient with the provided email not found.");
-
-            return Ok(new
-            {
-                message = "Recipient found successfully.",
-                data = new
-                {
-                    recipient.RecipientID,
-                    recipient.Name,
-                    recipient.DOB,
-                    recipient.Age,
-                    recipient.Gender,
-                    recipient.BloodGroupName,
-                    recipient.Phone,
-                    recipient.Email,
-                    recipient.Address
-                }
+                exists = true
             });
         }
         #endregion

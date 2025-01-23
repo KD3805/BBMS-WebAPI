@@ -18,12 +18,18 @@ namespace BBMS_WebAPI.Services
 
         public string GenerateToken(int userId, string userEmail)
         {
+            // Ensure the key length is sufficient
+            if (Encoding.UTF8.GetByteCount(_key) < 32)
+            {
+                throw new ArgumentException("JWT key must be at least 256 bits (32 bytes) long for HS256.");
+            }
+
             var claims = new[]
             {
-                new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, userEmail),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
+        new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+        new Claim(JwtRegisteredClaimNames.Email, userEmail),
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+    };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_key));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -37,5 +43,6 @@ namespace BBMS_WebAPI.Services
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
     }
 }

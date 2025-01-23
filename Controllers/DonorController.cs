@@ -39,6 +39,34 @@ namespace BBMS_WebAPI.Controllers
         }
         #endregion
 
+        #region Donor Profile
+        [HttpGet("Profile")]
+        public IActionResult GetDonorProfile()
+        {
+            var userId = HttpContext.Items["UserId"];
+
+            if (userId == null)
+                return Unauthorized("Invalid or expired token.");
+
+            var donor = _donorRepository.GetById((int)userId);
+            if (donor == null)
+                return NotFound("Donor not found.");
+
+            return Ok(new
+            {
+                donor.DonorID,
+                donor.Name,
+                donor.DOB,
+                donor.Age,
+                donor.Gender,
+                donor.BloodGroupName,
+                donor.Phone,
+                donor.Email,
+                donor.Address
+            });
+        }
+        #endregion
+
         #region Insert
         [HttpPost]
         public IActionResult InsertDonor([FromBody] DonorModel donorModel)
@@ -105,62 +133,20 @@ namespace BBMS_WebAPI.Controllers
                 return Ok(new
                 {
                     exists = false,
-                    message = "Donor is free to move forward with the given email."
+                    message = "Donor with the provided email not found."
                 });
             }
 
             return Ok(new
             {
                 message = "Donor with the given email already exists.",
-                exists = true,
-                data = new
-                {
-                    donor.DonorID,
-                    donor.Name,
-                    donor.DOB,
-                    donor.Age,
-                    donor.Gender,
-                    donor.BloodGroupName,
-                    donor.Phone,
-                    donor.Email,
-                    donor.Address
-                }
-            });
-        }
-        #endregion
-
-        #region Login
-        [HttpPost("Login")]
-        public IActionResult LoginDonor([FromBody] LoginRequestModel loginRequest)
-        {
-            if (string.IsNullOrWhiteSpace(loginRequest.Email))
-                return BadRequest("Email is required.");
-
-            var donor = _donorRepository.GetByEmail(loginRequest.Email);
-            if (donor == null)
-                return NotFound("Donor with the provided email not found.");
-
-            return Ok(new
-            {
-                message = "Donor found successfully.",
-                data = new
-                {
-                    donor.DonorID,
-                    donor.Name,
-                    donor.DOB,
-                    donor.Age,
-                    donor.Gender,
-                    donor.BloodGroupName,
-                    donor.Phone,
-                    donor.Email,
-                    donor.Address
-                }
+                exists = true
             });
         }
         #endregion
 
         #region DropDown
-        [HttpGet("dropdown")]
+        [HttpGet("DropDown")]
         public IActionResult GetDonorDropDown()
         {
             var donors = _donorRepository.GetDonorDropDown();

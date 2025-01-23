@@ -7,5 +7,7 @@ namespace BBMS_WebAPI.Models
         [Required(ErrorMessage = "The email field is required.")]
         [EmailAddress]
         public string Email { get; set; }
+
+        public string? Password { get; set; }
     }
 }

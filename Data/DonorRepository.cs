@@ -158,26 +158,6 @@ namespace BBMS_WebAPI.Data
 
                 return newDonorID > 0;
 
-                /*if (rowsAffected > 0)
-                {
-                    int newDonorID = 0;
-                    // Fetch the generated ID using SCOPE_IDENTITY
-                    SqlCommand getIdCmd = new SqlCommand("SELECT SCOPE_IDENTITY()", conn);
-                    object result = getIdCmd.ExecuteScalar();
-
-                    if (result != DBNull.Value && result != null)
-                    {
-                        newDonorID = Convert.ToInt32(result);
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException("Failed to retrieve the newly inserted DonorID.");
-                    }
-
-                    // Dynamically update the DonorMapping
-                    DonorMapper.AddToMapping(donorModel.Name, newDonorID);
-                }*/
-
             }
         }
         #endregion

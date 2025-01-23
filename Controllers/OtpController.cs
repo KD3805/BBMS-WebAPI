@@ -1,23 +1,32 @@
-﻿using BBMS_WebAPI.Services;
+﻿using BBMS_WebAPI.Data;
+using BBMS_WebAPI.Services;
 using BBMS_WebAPI.Utilities;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace BBMS_WebAPI.Controllers
 {
-    [Route("api/otp")]
+    [Route("api/[controller]")]
     [ApiController]
     public class OtpController : ControllerBase
     {
         private readonly OtpService _otpService;
         private readonly EmailHelper _emailHelper;
+        private readonly DonorRepository _donorRepository;
+        private readonly RecipientRepository _recipientRepository;
+        private readonly TokenService _tokenService;
 
-        public OtpController(OtpService otpService, EmailHelper emailHelper)
+        public OtpController(OtpService otpService, EmailHelper emailHelper, DonorRepository donorRepository, RecipientRepository recipientRepository, TokenService tokenService)
         {
             _otpService = otpService;
             _emailHelper = emailHelper;
+            _donorRepository = donorRepository;
+            _tokenService = tokenService;
+            _recipientRepository = recipientRepository;
         }
 
-        [HttpPost("send")]
+
+        [HttpPost("SendOTP")]
         public async Task<IActionResult> SendOtp([FromBody] SendOtpRequest rq)
         {
             if (string.IsNullOrEmpty(rq.Email))
@@ -29,32 +38,106 @@ namespace BBMS_WebAPI.Controllers
             await _emailHelper.SendEmail(rq.Email, "Red Vault OTP Code", emailBody);
             return Ok(new { success = true, message = "OTP sent successfully!" });  
         }
-                                                                                             
-        [HttpPost("verify")]
-        public async Task<IActionResult> VerifyOtp([FromBody] OtpVerifyRequest request)
-        {
-            Console.WriteLine($"Received Email: {request.Email}, OTP: {request.OtpCode}");
 
+        #region Donor Login
+        [HttpPost("VerifyOTP/Donor/Login")]
+        public async Task<IActionResult> VerifyOtpAndDonorLogin([FromBody] OtpVerifyRequest request)
+        {
             if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.OtpCode))
                 return BadRequest(new { success = false, message = "Email and OTP are required" });
 
-            var isValid = await _otpService.VerifyOtp(request.Email, request.OtpCode);
+            // Retrieve donor details
+            var donor = _donorRepository.GetByEmail(request.Email);
+            if (donor == null)
+                return BadRequest(new { success = false, message = "Donor not found." });
 
+            var isValid = await _otpService.VerifyOtp(request.Email, request.OtpCode);
             if (!isValid)
                 return BadRequest(new { success = false, message = "Invalid or expired OTP" });
 
-            return Ok(new { success = true, message = "OTP verified successfully!" });
+            // Generate JWT token
+            var token = _tokenService.GenerateToken(donor.DonorID, donor.Email);
+
+            return Ok(new
+            {
+                success = true,
+                message = "OTP verified successfully!",
+                token,
+                donorDetails = new
+                {
+                    donor.DonorID,
+                    donor.Name,
+                    donor.DOB,
+                    donor.Age,
+                    donor.Gender,
+                    donor.BloodGroupName,
+                    donor.Phone,
+                    donor.Email,
+                    donor.Address
+                }
+            });
         }
+        #endregion
+
+
+        #region Recipient Login
+        [HttpPost("VerifyOTP/Recipient/Login")]
+        public async Task<IActionResult> VerifyOtpAndRecipientLogin([FromBody] OtpVerifyRequest request)
+        {
+            if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.OtpCode))
+                return BadRequest(new { success = false, message = "Email and OTP are required" });
+
+            // Retrieve donor details
+            var recipient = _recipientRepository.GetByEmail(request.Email);
+            if (recipient == null)
+                return BadRequest(new { success = false, message = "Recipient not found." });
+
+            var isValid = await _otpService.VerifyOtp(request.Email, request.OtpCode);
+            if (!isValid)
+                return BadRequest(new { success = false, message = "Invalid or expired OTP" });
+
+            // Generate JWT token
+            var token = _tokenService.GenerateToken(recipient.RecipientID, recipient.Email);
+
+            return Ok(new
+            {
+                success = true,
+                message = "OTP verified successfully!",
+                token,
+                recipientDetails = new
+                {
+                    recipient.RecipientID,
+                    recipient.Name,
+                    recipient.DOB,
+                    recipient.Age,
+                    recipient.Gender,
+                    recipient.BloodGroupName,
+                    recipient.Phone,
+                    recipient.Email,
+                    recipient.Address
+                }
+            });
+        }
+        #endregion
+
     }
 
     public class SendOtpRequest
     {
+        [Required(ErrorMessage="Email is required.")]
+        [EmailAddress]
         public string Email { get; set; }
     }
 
     public class OtpVerifyRequest
     {
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress]
         public string Email { get; set; }
+
+        [Required(ErrorMessage = "OTP is required.")]
+        [MinLength(6, ErrorMessage = "OTP must be exactly 6 digits.")]
+        [MaxLength(6, ErrorMessage = "OTP must be exactly 6 digits.")]
         public string OtpCode { get; set; }
     }
 }

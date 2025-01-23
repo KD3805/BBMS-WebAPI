@@ -1,4 +1,5 @@
 using BBMS_WebAPI.Data;
+using BBMS_WebAPI.Middleware;
 using BBMS_WebAPI.Services;
 using BBMS_WebAPI.Utilities;
 using FluentValidation.AspNetCore;
@@ -18,11 +19,14 @@ builder.Services.AddControllers()
 
 // Register repositories
 builder.Services.AddScoped<DonorRepository>();
+builder.Services.AddScoped<RecipientRepository>();
+builder.Services.AddScoped<AdminRepository>();
 builder.Services.AddScoped<DonationRepository>();
 
 // Register utilities and services
 builder.Services.AddScoped<OtpService>();
 builder.Services.AddScoped<EmailHelper>();
+builder.Services.AddScoped<TokenService>();
 
 // Load DonorMapper mappings
 DonorMapper.LoadMapping(builder.Configuration);
@@ -41,6 +45,9 @@ builder.Services.AddCors(options =>
 
 // Configure JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.Length < 32)
+    throw new Exception("Invalid JWT key. It must be at least 256 bits (32 characters).");
+
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -80,6 +87,9 @@ if (app.Environment.IsDevelopment())
 
 // Use CORS middleware
 app.UseCors("AllowSpecificOrigin");
+
+// Validate JWT token on every request
+app.UseMiddleware<JwtMiddleware>();
 
 app.UseHttpsRedirection();
 
