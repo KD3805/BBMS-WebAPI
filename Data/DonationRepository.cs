@@ -50,6 +50,44 @@ namespace BBMS_WebAPI.Data
         }
         #endregion
 
+
+        #region Get Only Pending
+        public List<DonationModel> GetOnlyPending()
+        {
+            var donations = new List<DonationModel>();
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            {
+                conn.Open();
+                SqlCommand cmd = new SqlCommand("PR_Donation_SelectPending", conn)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                SqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    donations.Add(new DonationModel
+                    {
+                        DonationID = Convert.ToInt32(reader["DonationID"]),
+                        DonorName = reader["DonorName"].ToString(), // Using DonorName from join
+                        BloodGroupName = reader["BloodGroupName"].ToString(), // Using BloodGroupName from join
+                        Quantity = Convert.ToInt32(reader["Quantity"]),
+                        Weight = Convert.ToInt32(reader["Weight"]),
+                        LastDonationDate = reader.IsDBNull(reader.GetOrdinal("LastDonationDate")) ? (DateTime?)null : Convert.ToDateTime(reader["LastDonationDate"]),
+                        Disease = reader["Disease"]?.ToString(),
+                        IsEligible = Convert.ToBoolean(reader["IsEligible"]),
+                        Status = reader["Status"].ToString(),
+                        DateOfDonation = Convert.ToDateTime(reader["DateOfDonation"]),
+                        CertificatePath = reader["CertificatePath"]?.ToString(),
+                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                        UpdatedAt = reader.IsDBNull(reader.GetOrdinal("UpdatedAt")) ? (DateTime?)null : Convert.ToDateTime(reader["UpdatedAt"])
+                    });
+                }
+            }
+            return donations;
+        }
+        #endregion
+
+
         #region GetById
         public DonationModel GetById(int donationId)
         {
@@ -87,7 +125,8 @@ namespace BBMS_WebAPI.Data
         }
         #endregion
 
-        #region DetermineEligibility
+
+        #region Determine Eligibility
         public bool DetermineEligibility(string donorName, int weight)
         {
             var donorID = DonorMapper.GetDonorID(donorName);
@@ -119,7 +158,7 @@ namespace BBMS_WebAPI.Data
         #endregion
 
 
-        #region GetDonationHistoryByDonorID
+        #region Get Donation History By DonorID
         public List<DonationModel> GetDonationHistoryByDonorID(int donorID)
         {
             var donationHistory = new List<DonationModel>();    
@@ -160,6 +199,46 @@ namespace BBMS_WebAPI.Data
         #endregion
 
 
+        #region Get Pending Donation History By DonorID
+        public List<DonationModel> GetPendingDonationHistoryByDonorID(int donorID)
+        {
+            var donationHistory = new List<DonationModel>();
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            {
+                conn.Open();
+                SqlCommand cmd = new SqlCommand("PR_DonorPendingDonationHistory_SelectByDonorID", conn)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                cmd.Parameters.AddWithValue("@DonorID", donorID);
+
+                SqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    donationHistory.Add(new DonationModel
+                    {
+                        DonationID = Convert.ToInt32(reader["DonationID"]),
+                        DonorName = reader["DonorName"].ToString(),
+                        BloodGroupName = reader["BloodGroupName"].ToString(),
+                        Quantity = Convert.ToInt32(reader["Quantity"]),
+                        Weight = Convert.ToInt32(reader["Weight"]),
+                        LastDonationDate = reader.IsDBNull(reader.GetOrdinal("LastDonationDate")) ? (DateTime?)null : Convert.ToDateTime(reader["LastDonationDate"]),
+                        Disease = reader["Disease"]?.ToString(),
+                        IsEligible = Convert.ToBoolean(reader["IsEligible"]),
+                        Status = reader["Status"].ToString(),
+                        CertificatePath = reader["CertificatePath"]?.ToString(),
+                        DateOfDonation = Convert.ToDateTime(reader["DateOfDonation"]),
+                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                        UpdatedAt = reader.IsDBNull(reader.GetOrdinal("UpdatedAt")) ? (DateTime?)null : Convert.ToDateTime(reader["UpdatedAt"])
+                    });
+                }
+            }
+
+            return donationHistory;
+        }
+        #endregion
+
 
         #region Insert
         public bool Insert(DonationModel donationModel)
@@ -174,7 +253,7 @@ namespace BBMS_WebAPI.Data
 
             donationModel.IsEligible = DetermineEligibility(donationModel.DonorName, donationModel.Weight);
             if (!donationModel.IsEligible)
-                throw new ArgumentException($"Donor {donationModel.DonorName} is not eligible for donation.");
+                throw new ArgumentException($"Donor {donationModel.DonorName} is not eligible for donation for now. Please refer eligibility conditions.");
 
             using (SqlConnection conn = new SqlConnection(_connectionString))
             {
@@ -200,8 +279,6 @@ namespace BBMS_WebAPI.Data
         #endregion
 
 
-
-
         #region Update
         public bool Update(DonationModel donationModel)
         {
@@ -220,7 +297,7 @@ namespace BBMS_WebAPI.Data
             donationModel.IsEligible = DetermineEligibility(donationModel.DonorName, donationModel.Weight);
             if (!donationModel.IsEligible)
             {
-                throw new ArgumentException($"Donor {donationModel.DonorName} is not eligible for donation.");
+                throw new ArgumentException($"Donor {donationModel.DonorName} is not eligible for donation for now. Please refer eligibility conditions.");
             }
 
             using (SqlConnection conn = new SqlConnection(_connectionString))
@@ -236,7 +313,9 @@ namespace BBMS_WebAPI.Data
                 cmd.Parameters.AddWithValue("@Quantity", donationModel.Quantity);
                 cmd.Parameters.AddWithValue("@Weight", donationModel.Weight);
                 cmd.Parameters.AddWithValue("@LastDonationDate", donationModel.LastDonationDate ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@Disease", string.IsNullOrEmpty(donationModel.Disease) ? (object)DBNull.Value : donationModel.Disease);
+                // Use DBNull.Value only if Disease is null or empty
+                cmd.Parameters.AddWithValue("@Disease",
+                    !string.IsNullOrWhiteSpace(donationModel.Disease) ? donationModel.Disease.Trim() : (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@IsEligible", donationModel.IsEligible);
                 cmd.Parameters.AddWithValue("@Status", donationModel.Status);
                 cmd.Parameters.AddWithValue("@CertificatePath", string.IsNullOrEmpty(donationModel.CertificatePath) ? (object)DBNull.Value : donationModel.CertificatePath);
@@ -259,7 +338,7 @@ namespace BBMS_WebAPI.Data
                     CommandType = CommandType.StoredProcedure
                 };
                 cmd.Parameters.AddWithValue("@DonationID", updateStatusModel.DonationID);
-                cmd.Parameters.AddWithValue("@NewStatus", updateStatusModel.NewStatus);
+                cmd.Parameters.AddWithValue("@NewStatus", updateStatusModel.NewStatus); 
 
                 int rowsAffected = cmd.ExecuteNonQuery();
                 return rowsAffected > 0;

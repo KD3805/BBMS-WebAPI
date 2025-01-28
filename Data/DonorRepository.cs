@@ -48,6 +48,7 @@ namespace BBMS_WebAPI.Data
         }
         #endregion
 
+
         #region GetById
         public DonorModel GetById(int donorId)
         {
@@ -82,6 +83,7 @@ namespace BBMS_WebAPI.Data
             return donor;
         }
         #endregion
+
 
         #region GetByEmail
         public DonorModel GetByEmail(string email)
@@ -118,6 +120,7 @@ namespace BBMS_WebAPI.Data
             return donor;
         }
         #endregion
+
 
         #region Insert
         public bool Insert(DonorModel donorModel)
@@ -193,6 +196,7 @@ namespace BBMS_WebAPI.Data
         }
         #endregion
 
+
         #region Delete
         public bool Delete(int donorId)
         {
@@ -210,6 +214,7 @@ namespace BBMS_WebAPI.Data
             }
         }
         #endregion
+
 
         #region DonorDropDown
         public List<DonorDropDownModel> GetDonorDropDown()

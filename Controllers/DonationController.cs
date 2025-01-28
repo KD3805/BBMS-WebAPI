@@ -27,6 +27,20 @@ namespace BBMS_WebAPI.Controllers
         }
         #endregion
 
+
+        #region Get Only Pending Donations
+        [HttpGet("Pending")]
+        public IActionResult GetOnlyPendingDonations()
+        {
+            var donations = _donationRepository.GetOnlyPending();
+            if (donations == null || donations.Count == 0)
+                return NotFound("No donations found.");
+
+            return Ok(donations);
+        }
+        #endregion
+
+
         #region GetById
         [HttpGet("{id:int}")]
         public IActionResult GetDonationById(int id)
@@ -38,9 +52,10 @@ namespace BBMS_WebAPI.Controllers
             return Ok(donation);
         }
         #endregion
+        
 
         #region Donation History By DonorID
-        [HttpGet("history/{donorID:int}")]
+        [HttpGet("History/{donorID:int}")]
         public IActionResult GetDonationHistoryByDonorID(int donorID)
         {
             try
@@ -57,6 +72,27 @@ namespace BBMS_WebAPI.Controllers
             }
         }
         #endregion
+
+
+        #region Pending Donation History By DonorID
+        [HttpGet("Pending/History/{donorID:int}")]
+        public IActionResult GetPendingDonationHistoryByDonorID(int donorID)
+        {
+            try
+            {
+                var donationHistory = _donationRepository.GetPendingDonationHistoryByDonorID(donorID);
+                if (donationHistory == null || donationHistory.Count == 0)
+                    return NotFound($"No donation history found for donor with ID {donorID}.");
+
+                return Ok(donationHistory);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Unexpected error occurred: {ex.Message}");
+            }
+        }
+        #endregion
+
 
         #region Insert
         [HttpPost]
@@ -83,6 +119,7 @@ namespace BBMS_WebAPI.Controllers
             }
         }
         #endregion
+
 
         #region Update
         [HttpPut("{id:int}")]
@@ -113,8 +150,9 @@ namespace BBMS_WebAPI.Controllers
         }
         #endregion
 
+
         #region UpdateStatus
-        [HttpPut("status/{id:int}")]
+        [HttpPut("updateStatus/{id:int}")]
         public IActionResult UpdateDonationStatusStock(int id, [FromBody] DonationUpdateStatusModel statusModel)
         {
             if (id != statusModel.DonationID)
@@ -134,6 +172,7 @@ namespace BBMS_WebAPI.Controllers
             }
         }
         #endregion
+
 
         #region Delete
         [HttpDelete("{id:int}")]

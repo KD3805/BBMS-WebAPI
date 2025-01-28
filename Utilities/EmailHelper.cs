@@ -5,8 +5,10 @@ namespace BBMS_WebAPI.Utilities
 {
     public class EmailHelper
     {
-        private readonly string _emailUser = "dabhikishan358@gmail.com";
-        private readonly string _emailPassword = "wqzf xwul fjdt gfqu";
+        //private readonly string _emailUser = "dabhikishan358@gmail.com";
+        //private readonly string _emailPassword = "wqzf xwul fjdt gfqu";
+        private readonly string _emailUser = "teamkd101@gmail.com";
+        private readonly string _emailPassword = "wjyz aywo kkaq yuqf";
 
         public async Task SendEmail(string toEmail, string subject, string body)
         {

@@ -93,6 +93,8 @@ app.UseMiddleware<JwtMiddleware>();
 
 app.UseHttpsRedirection();
 
+app.UseDeveloperExceptionPage();
+
 // Add Authentication and Authorization Middleware
 app.UseAuthentication();
 app.UseAuthorization();

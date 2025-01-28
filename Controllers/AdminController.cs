@@ -42,6 +42,36 @@ namespace BBMS_WebAPI.Controllers
         }
         #endregion
 
+        #region Admin Profile
+        [HttpGet("Profile")]
+        public IActionResult GetAdminProfile()
+        {
+            var userId = HttpContext.Items["UserId"];
+
+            if (userId == null)
+            {
+                Console.WriteLine("Unauthorized: Token validation failed or user not attached to context.");
+                return Unauthorized("Invalid or expired token.");
+            }
+
+            if (userId == null)
+                return Unauthorized("Invalid or expired token.");
+
+            var admin = _adminRepository.GetById((int)userId);
+            if (admin == null)
+                return NotFound("Admin not found.");
+
+            return Ok(new
+            {
+                admin.AdminID,
+                admin.Name,
+                admin.Email,
+                admin.Phone,
+                admin.Role
+            });
+        }
+        #endregion
+
         #region Insert
         [HttpPost]
         public IActionResult InsertAdmin([FromBody] AdminModel adminModel)

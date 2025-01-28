@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -20,14 +19,53 @@ namespace BBMS_WebAPI.Middleware
 
         public async Task Invoke(HttpContext context)
         {
+            // Define public endpoints that do not require authentication
+            var publicEndpoints = new[] {
+                "/api/Donor/Email",
+                "/api/Admin/Email",
+                "/api/Recipient/Email",
+                "/api/Otp/SendOTP",
+                "/api/Otp/VerifyOTP/Donor/Login",
+                "/api/Otp/VerifyOTP/Recipient/Login",
+                "/api/Otp/VerifyOTP/Admin/Login",
+                "/api/Admin/Login"
+            };
+
+            // Check if the current path is a public endpoint
+            var currentPath = context.Request.Path.Value; // Get the request path
+            if (publicEndpoints.Any(e => e.Equals(currentPath, StringComparison.OrdinalIgnoreCase)))
+            {
+                // Skip token validation for public endpoints
+                await _next(context);
+                return;
+            }
+
+            // Validate token for secured endpoints
             var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
 
             if (!string.IsNullOrEmpty(token))
             {
-                AttachUserToContext(context, token);
+                try
+                {
+                    AttachUserToContext(context, token);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Token validation failed: {ex.Message}");
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    await context.Response.WriteAsync("Invalid or expired token.");
+                    return; // Terminate pipeline if token is invalid
+                }
+            }
+            else
+            {
+                // If no token is provided and it's not a public endpoint, return Unauthorized
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsync("Token is required.");
+                return;
             }
 
-            await _next(context);
+            await _next(context); // Proceed to the next middleware
         }
 
         private void AttachUserToContext(HttpContext context, string token)
@@ -47,21 +85,23 @@ namespace BBMS_WebAPI.Middleware
                 }, out SecurityToken validatedToken);
 
                 var jwtToken = (JwtSecurityToken)validatedToken;
-                var userId = int.Parse(jwtToken.Claims.First(x => x.Type == JwtRegisteredClaimNames.Sub).Value);
+                var userId = jwtToken.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Sub)?.Value;
 
-                context.Items["UserId"] = userId;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    throw new SecurityTokenException("UserId claim missing from token.");
+                }
+
+                context.Items["UserId"] = int.Parse(userId); // Attach UserId to context
             }
             catch (SecurityTokenExpiredException)
             {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                context.Response.WriteAsync("Token has expired.");
+                throw new SecurityTokenException("Token has expired.");
             }
             catch (Exception)
             {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                context.Response.WriteAsync("Invalid token.");
+                throw new SecurityTokenException("Invalid token.");
             }
         }
-
     }
 }

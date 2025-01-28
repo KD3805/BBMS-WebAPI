@@ -46,7 +46,10 @@ namespace BBMS_WebAPI.Controllers
             var userId = HttpContext.Items["UserId"];
 
             if (userId == null)
+            {
+                Console.WriteLine("Unauthorized: Token validation failed or user not attached to context.");
                 return Unauthorized("Invalid or expired token.");
+            }
 
             var recipient = _recipientRepository.GetById((int)userId);
             if (recipient == null)

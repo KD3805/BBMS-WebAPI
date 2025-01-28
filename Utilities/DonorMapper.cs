@@ -10,7 +10,7 @@ namespace BBMS_WebAPI.Utilities
         public static void LoadMapping(IConfiguration configuration)
         {
             using (SqlConnection conn = new SqlConnection(configuration.GetConnectionString("ConnectionString")))
-            {
+            {   
                 conn.Open();
                 SqlCommand cmd = new SqlCommand("SELECT DonorID, Name FROM Donor", conn);
                 SqlDataReader reader = cmd.ExecuteReader();
