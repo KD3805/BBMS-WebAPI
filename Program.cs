@@ -22,14 +22,17 @@ builder.Services.AddScoped<DonorRepository>();
 builder.Services.AddScoped<RecipientRepository>();
 builder.Services.AddScoped<AdminRepository>();
 builder.Services.AddScoped<DonationRepository>();
+builder.Services.AddScoped<BloodRequestRepository>();
+builder.Services.AddScoped<BloodStockRepository>();
 
 // Register utilities and services
 builder.Services.AddScoped<OtpService>();
 builder.Services.AddScoped<EmailHelper>();
 builder.Services.AddScoped<TokenService>();
 
-// Load DonorMapper mappings
+// Load mappings
 DonorMapper.LoadMapping(builder.Configuration);
+RecipientMapper.LoadMapping(builder.Configuration);
 
 // Configure CORS
 builder.Services.AddCors(options =>

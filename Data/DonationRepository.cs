@@ -123,6 +123,7 @@ namespace BBMS_WebAPI.Data
             }
             return donation;
         }
+       
         #endregion
 
 
@@ -231,6 +232,39 @@ namespace BBMS_WebAPI.Data
                         DateOfDonation = Convert.ToDateTime(reader["DateOfDonation"]),
                         CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
                         UpdatedAt = reader.IsDBNull(reader.GetOrdinal("UpdatedAt")) ? (DateTime?)null : Convert.ToDateTime(reader["UpdatedAt"])
+                    });
+                }
+            }
+
+            return donationHistory;
+        }
+
+        #endregion
+
+        
+        #region Get Donation Report By DonorID
+        public List<DonationReportModel> GetDonationReportByDonorID(int donorID)
+        {
+            var donationHistory = new List<DonationReportModel>();
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            {
+                conn.Open();
+                SqlCommand cmd = new SqlCommand("PR_DonorDonation_SelectDonationReport", conn)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                cmd.Parameters.AddWithValue("@DonorID", donorID);
+
+                SqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    donationHistory.Add(new DonationReportModel
+                    {
+                        DonorID = Convert.ToInt32(reader["DonorID"]),
+                        Status = reader["Status"].ToString(),
+                        TotalBloodDonated = Convert.ToInt32(reader["TotalBloodDonated"]),
+                        TotalDonation = Convert.ToInt32(reader["TotalDonation"]),
                     });
                 }
             }

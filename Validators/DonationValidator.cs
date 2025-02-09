@@ -89,4 +89,25 @@ namespace BBMS_WebAPI.Validators
                 .NotEmpty().WithMessage("Blood group name is required.");
         }
     }
+
+    public class DonationReportValidator : AbstractValidator<DonationReportModel>
+    {
+        public DonationReportValidator()
+        {
+            // Validate DonorID
+            RuleFor(report => report.DonorID)
+                .GreaterThan(0).WithMessage("Donor ID must be a positive number.");
+            // Validate Status
+            RuleFor(report => report.Status)
+                .NotEmpty().WithMessage("Status is required.")
+                .Must(status => new[] { "Pending", "Approved", "Rejected" }.Contains(status))
+                .WithMessage("Status must be 'Pending', 'Approved', or 'Rejected'.");
+            // Validate TotalDonation
+            RuleFor(report => report.TotalDonation)
+                .GreaterThanOrEqualTo(0).WithMessage("Total donation must be a non-negative number.");
+            // Validate TotalBloodDonated
+            RuleFor(report => report.TotalBloodDonated)
+                .GreaterThanOrEqualTo(0).WithMessage("Total blood donated must be a non-negative number.");
+        }
+    }
 }

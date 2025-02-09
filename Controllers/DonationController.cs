@@ -94,6 +94,26 @@ namespace BBMS_WebAPI.Controllers
         #endregion
 
 
+        #region Donation Report By DonorID
+        [HttpGet("Report/{donorID:int}")]
+        public IActionResult GetDonationReportByDonorID(int donorID)
+        {
+            try
+            {
+                var donationReport = _donationRepository.GetDonationReportByDonorID(donorID);
+                if (donationReport == null )
+                    return NotFound($"No donation report found for donor with ID {donorID}.");
+
+                return Ok(donationReport);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Unexpected error occurred: {ex.Message}");
+            }
+        }
+        #endregion
+        
+
         #region Insert
         [HttpPost]
         public IActionResult InsertDonation([FromBody] DonationModel donationModel)
@@ -152,7 +172,7 @@ namespace BBMS_WebAPI.Controllers
 
 
         #region UpdateStatus
-        [HttpPut("updateStatus/{id:int}")]
+        [HttpPut("UpdateStatus/{id:int}")]
         public IActionResult UpdateDonationStatusStock(int id, [FromBody] DonationUpdateStatusModel statusModel)
         {
             if (id != statusModel.DonationID)
@@ -190,6 +210,7 @@ namespace BBMS_WebAPI.Controllers
         }
         #endregion
 
+
         //#region DetermineEligibility
         //[HttpGet("eligibility/{donorName}")]
         //public IActionResult CheckEligibility(string donorName)
@@ -213,6 +234,7 @@ namespace BBMS_WebAPI.Controllers
         //    }
         //}
         //#endregion
+
 
         #region DropDown
         [HttpGet("dropdown")]

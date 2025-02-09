@@ -54,11 +54,9 @@ namespace BBMS_WebAPI.Controllers
             var donor = _donorRepository.GetById((int)userId);
             if (donor == null)
             {
-                Console.WriteLine($"Donor with ID {userId} not found.");
                 return NotFound("Donor not found.");
             }
 
-            Console.WriteLine($"Donor Profile Retrieved: {donor.Name}");
             return Ok(new
             {
                 donor.DonorID,

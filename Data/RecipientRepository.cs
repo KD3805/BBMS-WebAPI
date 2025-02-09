@@ -142,8 +142,21 @@ namespace BBMS_WebAPI.Data
                 cmd.Parameters.AddWithValue("@Email", recipientModel.Email);
                 cmd.Parameters.AddWithValue("@Address", recipientModel.Address);
 
-                int rowsAffected = cmd.ExecuteNonQuery();
-                return rowsAffected > 0;
+                // Add output parameter to capture the new RecipientID
+                SqlParameter newRecipientIdParam = new SqlParameter("@NewRecipientID", SqlDbType.Int)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                cmd.Parameters.Add(newRecipientIdParam);
+
+                cmd.ExecuteNonQuery();
+
+                int newRecipientID = (int)newRecipientIdParam.Value;
+
+                // Update RecipientMapper dynamically
+                RecipientMapper.AddToMapping(recipientModel.Name, newRecipientID);
+
+                return newRecipientID > 0;
             }
         }
         #endregion
