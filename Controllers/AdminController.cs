@@ -199,5 +199,24 @@ namespace BBMS_WebAPI.Controllers
             });
         }
         #endregion
+
+
+        #region Admin Dashboard Report Counts
+        [HttpGet("DashboardReport")]
+        public async Task<IActionResult> GetAdminDashboardReportCounts()
+        {
+            try
+            {
+                var reportCounts = await _adminRepository.GetDashboardReportCountsAsync();
+                if (reportCounts == null)
+                    return NotFound("No report counts found.");
+                return Ok(reportCounts);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Unexpected error occurred: {ex.Message}");
+            }
+        }
+        #endregion
     }
 }

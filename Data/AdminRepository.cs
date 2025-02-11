@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using System.Data;
 using BCrypt.Net;
 using Org.BouncyCastle.Crypto.Generators;
+using Dapper;
 
 namespace BBMS_WebAPI.Data
 {
@@ -223,5 +224,41 @@ namespace BBMS_WebAPI.Data
         #endregion
 
 
+        #region Admin Dashboard Report Counts
+        public async Task<AdminDashboardReportModel> GetDashboardReportCountsAsync()
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                // Execute the stored procedure and get multiple result sets.
+                var results = await connection.QueryMultipleAsync("PR_Admin_SelectDonorRecipientReport", commandType: CommandType.StoredProcedure);
+
+                // Read the first result set (donations data)
+                var donationData = await results.ReadSingleAsync<DonationReportDTO>();
+                // Read the second result set (blood requests data)
+                var requestData = await results.ReadSingleAsync<BloodRequestDTO>();
+
+                // Map the two result sets into a single DTO to return
+                var report = new AdminDashboardReportModel
+                {
+                    // Donations info
+                    TotalDonors = donationData.TotalDonors,
+                    TotalDonations = donationData.TotalDonations,
+                    PendingDonations = donationData.PendingDonations,
+                    AcceptedDonations = donationData.AcceptedDonations,
+                    RejectedDonations = donationData.RejectedDonations,
+
+                    // Blood Requests info
+                    TotalRecipients = requestData.TotalRecipients,
+                    TotalBloodRequests = requestData.TotalBloodRequests,
+                    PendingRequests = requestData.PendingRequests,
+                    AcceptedRequests = requestData.AcceptedRequests,
+                    RejectedRequests = requestData.RejectedRequests
+                };
+
+                return report;
+            }
+        }
+
+        #endregion
     }
 }

@@ -17,6 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers()
     .AddFluentValidation(c => c.RegisterValidatorsFromAssembly(Assembly.GetExecutingAssembly()));
 
+
 // Register repositories
 builder.Services.AddScoped<DonorRepository>();
 builder.Services.AddScoped<RecipientRepository>();
