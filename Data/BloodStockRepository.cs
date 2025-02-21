@@ -1,5 +1,6 @@
 ﻿using BBMS_WebAPI.Models;
 using BBMS_WebAPI.Utilities;
+using Dapper;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
@@ -172,6 +173,38 @@ namespace BBMS_WebAPI.Data
                 }
             }
             return result > 0;
+        }
+        #endregion
+
+        #region GetBloodStockAvailability
+        public async Task<BloodAvailabilityViewModel> GetBloodAvailabilityAsync(string bloodGroupName)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                using (var multi = await connection.QueryMultipleAsync(
+                    "PR_StockAndDonors_FindByBloodGroup",
+                    new { BloodGroupName = bloodGroupName },
+                    commandType: CommandType.StoredProcedure))
+                {
+                    // First result set: List of donors.
+                    var donors = (await multi.ReadAsync<BloodDonorModel>()).ToList();
+
+                    // Second result set: Blood stock details.
+                    var stockDetails = await multi.ReadSingleAsync<BloodStockDetailsModel>();
+
+                    // Build an availability message based on blood stock quantity.
+                    string availabilityMessage = stockDetails.TotalBloodStock == 0
+                        ? "Blood not available or out of stock."
+                        : "Blood available.";
+
+                    return new BloodAvailabilityViewModel
+                    {
+                        StockDetails = stockDetails,
+                        Donors = donors,
+                        AvailabilityMessage = availabilityMessage
+                    };
+                }
+            }
         }
         #endregion
     }

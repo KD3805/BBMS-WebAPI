@@ -1,8 +1,11 @@
 ﻿using BBMS_WebAPI.Data;
 using BBMS_WebAPI.Models;
+using Dapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using System;
+using System.Data;
 using System.Linq;
 
 namespace BBMS_WebAPI.Controllers
@@ -96,6 +99,34 @@ namespace BBMS_WebAPI.Controllers
             if (deleted)
                 return NoContent();
             return StatusCode(StatusCodes.Status500InternalServerError, "Error deleting blood stock.");
+        }
+        #endregion
+
+        #region GetBloodStockAvailability
+        [HttpGet("BloodAvailability/{bloodGroupName}")]
+        public async Task<IActionResult> GetBloodAvailability(string bloodGroupName)
+        {
+            try
+            {
+                var result = await _bloodStockRepository.GetBloodAvailabilityAsync(bloodGroupName);
+                // Optionally, if there is no blood stock and no donors at all,
+                // you could return a 404 NotFound response.
+                if (result == null || result.StockDetails == null)
+                {
+                    return NotFound(new { Message = "No data found for the specified blood group." });
+                }
+                return Ok(result);
+            }
+            catch (SqlException ex)
+            {
+                // Handle SQL errors (like RAISERROR from the SP)
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                // Log exception details as needed.
+                return StatusCode(500, new { Message = "An error occurred while processing your request.", Details = ex.Message });
+            }
         }
         #endregion
     }

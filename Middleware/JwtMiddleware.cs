@@ -28,19 +28,49 @@ namespace BBMS_WebAPI.Middleware
                 "/api/Otp/VerifyOTP/Donor/Login",
                 "/api/Otp/VerifyOTP/Recipient/Login",
                 "/api/Otp/VerifyOTP/Admin/Login",
-                "/api/Admin/Login"
+                "/api/Admin/Login",
             };
 
-            // Check if the current path is a public endpoint
-            var currentPath = context.Request.Path.Value; // Get the request path
+            // Get the current request path
+            var currentPath = context.Request.Path.Value;
+
+            // Allowed blood group values:
+            var allowedBloodGroups = new[]
+            {
+                "AB-Ve", "AB+Ve", "A-Ve", "A+Ve", "B-Ve", "B+Ve", "Oh-Ve", "Oh+Ve", "O-Ve", "O+Ve"
+            };
+
+            // Pattern matching for endpoints starting with "/api/BloodStock/BloodAvailability/"
+            if (!string.IsNullOrEmpty(currentPath))
+            {
+                if (currentPath.StartsWith("/api/BloodStock/BloodAvailability/", StringComparison.OrdinalIgnoreCase))
+                {
+                    var segments = currentPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                    // Expected format: [ "api", "BloodStock", "BloodAvailability", "{bloodGroup}" ]
+                    if (segments.Length >= 4)
+                    {
+                        var bloodGroupSegment = segments[3];
+                        // Decode the segment to ensure encoded characters (like "%2B") are converted
+                        var bloodGroup = Uri.UnescapeDataString(bloodGroupSegment);
+
+                        if (allowedBloodGroups.Any(b => b.Equals(bloodGroup, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            // Skip token validation for these endpoints.
+                            await _next(context);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // Check if the current path exactly matches any public endpoint.
             if (publicEndpoints.Any(e => e.Equals(currentPath, StringComparison.OrdinalIgnoreCase)))
             {
-                // Skip token validation for public endpoints
                 await _next(context);
                 return;
             }
 
-            // Validate token for secured endpoints
+            // For all other endpoints, validate token
             var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
 
             if (!string.IsNullOrEmpty(token))
@@ -59,7 +89,7 @@ namespace BBMS_WebAPI.Middleware
             }
             else
             {
-                // If no token is provided and it's not a public endpoint, return Unauthorized
+                // If no token is provided for secured endpoints, return Unauthorized.
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 await context.Response.WriteAsync("Token is required.");
                 return;
